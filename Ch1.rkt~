@@ -1,0 +1,33 @@
+(define (square a)(* a a))
+(define (sum-int a b)
+  (if (> a b)
+      0
+      (+ a
+         (sum-int (+ a 1) b))))
+(define (sum-sq a b)
+  (if (> a b)
+      0
+      (+ (square a)
+         (sum-sq (+ a 1) b))))
+(define (pi-sum a b)
+  (if (> a b)
+      0
+      (+ (/ 1 (* a (+ a 2)))
+         (pi-sum (+ a 4) b))))
+
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term
+              (next a)
+              next
+              b))))
+(define (sum-int a b)
+  (define (identity a) a)
+  (sum identity a (+ a 1) b))
+
+(sum-int 10 20)
+(sum-sq 2 4)
+(square 2)
+(pi-sum 1 2)

@@ -1,0 +1,50 @@
+(define nil '())
+; using vectors
+(define (+vect v1 v2)
+  (_make-vector
+   (+ (xcor v1)(xcor v2))
+   (+ (ycor v1)(ycor v2))))
+
+(define (scale-vect s v)
+  (_make-vector (* s (xcor v))
+               (* s (ycor v))))
+
+(define _make-vector cons)
+(define xcor car)
+(define ycor cdr)
+
+(define make-segment cons)
+(define seg-start car)
+(define seg-end cdr)
+
+; lists
+(define 1-to-4 (list 1 2 3 4))
+
+; cdr-ing down a list
+(define (scale-list s l)
+  (if (null? l)
+      nil
+      (cons(* (car l) s)
+           (scale-list s (cdr l)))))
+
+(define (_map p l)
+  (if (null? l)
+      nil
+      (cons (p (car l))
+            (_map p (cdr l)))))
+
+; new one using the map
+(define (scale-list s l)
+  (_map (lambda (item) (* item s))
+       l))
+
+; iterative
+(define (_for-each proc list)
+  (cond ((null? list) "done")
+        (else (proc (car list))
+              (_for-each proc
+                        (cdr list)))))
+
+; (scale-list 10 1-to-4)
+; (_map (lambda(x)(+ x 10)) 1-to-4)
+; (_for-each (lambda(x)(+ x 10)) 1-to-4)
