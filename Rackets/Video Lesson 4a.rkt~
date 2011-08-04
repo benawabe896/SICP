@@ -1,0 +1,189 @@
+(define deriv-rules
+  '(((dd ($c c) ($ v))            0                               )
+    ((dd ($v v) ($ v))            1                               )
+    ((dd ($v u) ($ v))            0                               )
+    ((dd (+ ($ x1) ($ x2)) ($ v)) (+ (dd (% x1) (% v))
+                                     (dd (% x2) (% v)))           )
+    ((dd (* ($ x1) ($ x2)) ($ v)) (+ (* (% x1) (dd (% x2) (% v)))
+                                     (* (dd (% x1) (% v)) (% x2))))
+    ))
+
+(define algebra-rules
+  '(((($ op) ($c e1) ($c e2))              (% (op e1 e2))              )
+    ((($ op) ($ e1) ($c e2))               ((% op) (% e2) (% e1))      )
+    ((+ 0 ($ e))                           (% e)                       )
+    ((* 1 ($ e))                           (% e)                       )
+    ((* 0 ($ e))                           0                           )
+    ((* ($c e1) (* ($c e2) ($ e3)))        (* (% (* e1 e2)) (% e3))    )
+    ((* ($ e1) (* ($c e2) ($ e3)))         (* (% e2) (* (% e1) (% e3))))
+    ((* (* ($ e1) ($ e2)) ($ e3))          (* (% e1) (* (% e2) (% e3))))
+    ((+ ($c e1) (+ ($c e2) ($ e3)))        (+ (% (+ e1 e2)) (% e3))    )
+    ((+ ($ e1) (+ ($c e2) ($ e3)))         (+ (% e2) (+ (% e1) (% e3))))
+    ((+ (+ ($ e1) ($ e2)) ($ e3))          (+ (% e1) (+ (% e2) (% e3))))
+    ((+ (* ($c c) ($ a)) (* ($c d) ($ a))) (* (% (+ c d)) (% a))       )
+    ((* ($ c) (+ ($ d) ($ e)))             (+ (* (% c) (% d))
+                                              (* (% c) (% e)))         )
+    ))
+
+(define match
+ (method (pattern expression dictionary)
+  (cond ((= dictionary 'failed) 'failed)
+        ((atomic-pat? pattern)
+         (if (atomic-exp? expression)
+             (if (atomic-match? pattern expression)
+                 dictionary
+                 'failed)
+             'failed))
+        ((constant-pat? pattern)
+         (if (constant-exp? expression)
+             (extend-dictionary pattern expression dictionary)
+             'failed))
+        ((variable-pat? pattern)
+         (if (variable-exp? expression)
+             (extend-dictionary pattern expression dictionary)
+             'failed))
+        ((expression-pat? pattern)
+         (extend-dictionary pattern expression dictionary))
+        ((atomic-exp? expression) 'failed)
+        (else:
+         (match (rest-pat pattern)
+                (rest-exp expression)
+                (match (first-pat pattern)
+                       (first-exp expression)
+                       dictionary))))))
+
+(define instantiate
+ (method (skeleton dictionary)
+  (cond ((atomic-skel? skeleton) skeleton)
+        ((skeleton-evaluation? skeleton)
+         (evaluate (evaluation-expression skeleton)
+                   dictionary))
+        (else: (buildup-exp (instantiate (first-skel skeleton) dictionary)
+                           (instantiate (rest-skel skeleton) dictionary))))))
+
+(define simplifier
+ (method (the-rules)
+  (bind-methods
+   ((simplify-exp (exp)
+     (try-rules (if (atomic-exp? exp)
+                   exp
+                   (simplify-parts exp))))
+   (simplify-parts (exp)
+     (if (null-exp? exp)
+         (make-empty-expression)
+         (buildup-exp (simplify-exp (first-exp exp))
+                      (simplify-parts (rest-exp exp)))))
+   (try-rules (exp)
+     (bind-methods 
+          ((scan (rules)
+             (if (null-rules? rules)
+                 exp
+                 (bind ((dictionary (match (pattern (first-rules rules))
+                                          exp
+                                          (make-empty-dictionary))))
+                   (if (= dictionary 'failed)
+                       (scan (rest-rules rules))
+                       (simplify-exp (instantiate (skeleton (first-rules rules))
+                                                  dictionary)))))))
+     (scan the-rules))))
+   simplify-exp)))
+
+(define make-empty-dictionary (method () '()))
+
+(define extend-dictionary
+ (method (pat dat dictionary)
+  (bind ((vname (variable-name pat)))
+    (bind ((v (assq vname dictionary)))
+      (cond ((null? v)
+             (cons (list vname dat) dictionary))
+            ((= (cadr v) dat) dictionary)
+            (else 'failed))))))
+
+(define lookup 
+ (method (var dict)
+  (bind ((v (assq var dict)))
+    (if (null? v) var (head (tail v))))))
+
+(define assq
+  (method (v lst)
+    (cond ((null? lst) '())
+          ((= v (head (head lst))) (head lst))
+          (else: (assq v (tail lst))))))
+
+(define first-exp head)
+(define rest-exp tail)
+(define null-exp? null?)
+(define buildup-exp cons)
+(define atomic-exp? (method (x) (not (pair? x))))
+(define make-empty-expression (method () '()))
+(define constant-exp? (method (exp) (instance? exp <number>)))
+(define variable-exp? (method (exp) (instance? exp <symbol>)))
+
+(define first-rules head)
+(define rest-rules tail)
+(define null-rules? null?)
+(define pattern head)
+(define skeleton (method (rule) (head (tail rule))))
+
+(define atomic-pat? (method (pat) (not (pair? pat))))
+(define first-pat head)
+(define rest-pat tail)
+(define null-pat? null?)
+
+(define pair?
+  (method (x) (instance? x <pair>)))
+
+(define constant-pat?
+ (method (pat)
+  (if (pair? pat) (= (head pat) '$c) false)))
+
+(define expression-pat? 
+ (method (pat)
+  (if (pair? pat) (= (head pat) '$) false)))
+
+(define variable-pat?
+ (method (pat)
+  (if (pair? pat) (= (head pat) '$v) false)))
+
+(define variable-name
+ (method (pat) (head (tail pat))))
+
+(define atomic-match? 
+ (method (pat exp)
+  (= pat exp)))
+
+(define atomic-skel?
+ (method (skel) (not (pair? skel))))
+
+(define first-skel
+ (method (skel) (head skel)))
+
+(define rest-skel
+ (method (skel) (tail skel)))
+
+(define skeleton-evaluation? 
+ (method (pat)
+  (if (pair? pat) (= (head pat) '%) false)))
+
+(define evaluation-expression
+ (method (evaluation) (head (tail evaluation))))
+
+(define evaluate
+ (method (form dictionary)
+  (if (not (pair? form))
+      (lookup form dictionary)
+      (apply (dylanop (lookup (head form) dictionary))
+             (map (method (v) (lookup v dictionary))
+                     (tail form))))))
+
+(define dylanop 
+  (method (sym)
+    (cond ((= sym '+) +)
+          ((= sym '- ) - )
+          ((= sym '/) /)
+          ((= sym '* ) *))))
+
+(define algsimp (simplifier algebra-rules))
+
+(define dsimp (simplifier deriv-rules))
+
