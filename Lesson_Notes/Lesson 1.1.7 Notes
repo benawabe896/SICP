@@ -1,0 +1,31 @@
+(sqrt-iter 1.0 4))
+(new-if (good-enough? 1.0 4)
+      1.0
+      (sqrt-iter (improve 1.0 4)
+                 4))))
+(new-if (good-enough? 1.0 4)
+      1.0
+      (sqrt-iter (improve 1.0 4)
+                 4))))
+
+((good-enough? 1.0 4) (1.0)
+        (else (sqrt-iter (improve 1.0 4) 4))))
+
+(try 1.0 x)
+(try 1.0 4)
+(if (good-enough? 1 4)
+        1
+        (try (improve 1) 1)))
+        
+(if ((< (abs (/ (- 1 4) 4)) 0.001)))
+(< (3) 0.001))
+        1
+        (try (improve 1) 1)))
+
+1       4
+2.5     1
+2.05    2.5
+2.0006   2.05
+
+
+

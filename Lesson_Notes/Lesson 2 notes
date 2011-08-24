@@ -1,0 +1,44 @@
+fixed-point (  [average-damp (lambda(y) (/ x y)))],  [1] )
+fixed-point (  [average-damp (lambda(y) (/ x y)))],  [1] )
+
+(iter [start] [(f start)] )
+(iter [1] [(f start)] )
+(iter [1] [(f 1)] )
+(iter [1] [((average-damp (lambda(1)(/ 2 1))))] )
+
+
+function close-enuf(old, new){
+    var tolerance = 0.00001;
+    return abs(u - v) < tolerance;
+}
+
+function iter(old, new){
+    if(close-enuf(old, new)){
+        return new;
+    } else {
+        iter(new, f(new));
+    }
+}
+
+function average-damp(f){
+    return function(x){
+        return average(f,x);
+    }
+}
+function fixed-point(f, start){
+    iter(start, f(start));
+}
+
+function square_root(x){
+    return fixed-point(average-damp(function(y){return x / y}), 1);
+}
+
+
+
+(_sqrt 2)
+((lambda (x) (fixed-point (average-damp (lambda (y) (/ x y))) 1)) 2)
+(fixed-point (average-damp (lambda (y) (/ 2 y))) 1)
+
+
+
+
